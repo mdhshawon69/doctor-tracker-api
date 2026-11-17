@@ -103,13 +103,21 @@ instance.
 
 This API is meant to be deployed on its own Vercel domain, with the frontend on
 a different origin. In that setup `FRONTEND_ORIGIN` must be the exact frontend
-origin (no trailing slash) and the cookie must be
+origin (no trailing slash) and the cookie is
 `SameSite=None; Secure`. That is applied automatically in production when
 `FRONTEND_ORIGIN` uses `https://`; override with `COOKIE_SAMESITE=lax` if you
 later put the frontend behind the same site.
 
-The frontend must send requests with `credentials: "include"` (for example
-`fetch(url, { credentials: "include" })`) for the cookie to travel at all.
+The Doctor Tracker frontend proxies this API instead of calling it directly:
+`next.config.ts` rewrites `/api/:path*` to this project's URL, so the browser
+only talks to the frontend origin. The session cookie then belongs to the
+frontend host, which lets Next.js middleware and server components read it, and
+`SameSite=Lax` would also work. In that setup only `API_URL` has to be set on
+the frontend — it never holds `AUTH_SECRET`.
+
+If a client does call the API cross-origin directly, it must send
+`credentials: "include"` (for example `fetch(url, { credentials: "include" })`)
+and the origin must be listed in `FRONTEND_ORIGIN`.
 
 ## Notes for existing deployments
 

@@ -4,10 +4,23 @@ import { fileURLToPath } from "node:url"
 import { config as loadEnv } from "dotenv"
 
 /**
- * The compiled server lives in `dist/`, the sources in `src/`, and both sit one
- * level below the directory that holds `.env` and `.env.local`.
+ * Resolves the directory that holds `.env` and `.env.local`. The compiled
+ * server lives in `dist/`, the sources in `src/`, and both sit one level below
+ * that directory.
+ *
+ * When a bundler targets CommonJS (Vercel Functions do), `import.meta.url` does
+ * not exist; the working directory is used instead, where there are no env
+ * files to load anyway.
  */
-const serverRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
+function resolveServerRoot() {
+  try {
+    return path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
+  } catch {
+    return process.cwd()
+  }
+}
+
+const serverRoot = resolveServerRoot()
 
 // `.env.local` is loaded first so it wins over the committed defaults.
 loadEnv({ path: path.join(serverRoot, ".env.local"), quiet: true })
