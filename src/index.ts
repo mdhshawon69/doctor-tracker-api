@@ -1,13 +1,12 @@
 import type { Server } from "node:http"
 
-import { createApp } from "./app.js"
+import app from "./app.js"
 import { config } from "./config.js"
 import { connectToDatabase, disconnectFromDatabase } from "./db.js"
 
 async function start() {
   await connectToDatabase()
 
-  const app = createApp()
   const server: Server = app.listen(config.port, () => {
     console.log(`[api] listening on http://localhost:${config.port}`)
     console.log(`[api] allowing browser origin(s): ${config.frontendOrigins.join(", ")}`)

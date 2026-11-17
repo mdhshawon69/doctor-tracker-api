@@ -17,6 +17,28 @@ export const loginSchema = z.object({
   password: z.string().min(1, "Password is required").max(128),
 })
 
+// bcrypt only considers the first 72 bytes of a password, so longer values are
+// rejected instead of silently truncated.
+const passwordSchema = z
+  .string()
+  .min(8, "Password must be at least 8 characters")
+  .max(72, "Password must be 72 characters or fewer")
+
+export const registerSchema = z.object({
+  name: z.string().trim().min(2, "Name must be at least 2 characters").max(120),
+  email: z.string().trim().toLowerCase().email("Enter a valid email address").max(160),
+  password: passwordSchema,
+})
+
+export const passwordChangeSchema = z.object({
+  currentPassword: z.string().min(1, "Current password is required").max(72),
+  newPassword: passwordSchema,
+})
+
+export const passwordResetSchema = z.object({
+  password: passwordSchema,
+})
+
 export const doctorInputSchema = z.object({
   name: z.string().trim().min(2, "Name must be at least 2 characters").max(120),
   specialization: z.enum(SPECIALIZATIONS, { message: "Choose a specialization" }),

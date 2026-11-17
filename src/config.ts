@@ -24,7 +24,11 @@ function parseBoolean(value: string | undefined, fallback: boolean) {
 }
 
 function parseSameSite(value: string | undefined) {
-  const normalised = (value ?? "lax").trim().toLowerCase()
+  if (value === undefined || value.trim() === "") {
+    return undefined
+  }
+
+  const normalised = value.trim().toLowerCase()
 
   if (normalised === "strict" || normalised === "none" || normalised === "lax") {
     return normalised
@@ -32,8 +36,6 @@ function parseSameSite(value: string | undefined) {
 
   throw new Error('COOKIE_SAMESITE must be "lax", "strict" or "none".')
 }
-
-const sameSite = parseSameSite(process.env.COOKIE_SAMESITE)
 
 const frontendOrigins = (process.env.FRONTEND_ORIGIN ?? "http://localhost:3000")
   .split(",")
@@ -44,6 +46,16 @@ const frontendOrigins = (process.env.FRONTEND_ORIGIN ?? "http://localhost:3000")
 // Secure cookie when the configured frontend is actually served over HTTPS.
 const servesOverHttps =
   frontendOrigins.length > 0 && frontendOrigins.every((origin) => origin.startsWith("https://"))
+
+const configuredSameSite = parseSameSite(process.env.COOKIE_SAMESITE)
+
+/**
+ * When the API and the frontend are deployed on different domains (for example
+ * a Vercel API project plus a separately hosted frontend) the session cookie is
+ * cross-site, and browsers only send those with `SameSite=None; Secure`.
+ */
+const sameSite =
+  configuredSameSite ?? (isProduction && servesOverHttps ? "none" : "lax")
 
 export const config = {
   port: Number(process.env.PORT ?? 4000),
@@ -68,7 +80,7 @@ export function getAuthSecret() {
 
   if (!secret) {
     throw new Error(
-      "AUTH_SECRET is not set. Add it to server/.env or server/.env.local before starting the API."
+      "AUTH_SECRET is not set. Add it to .env for local development or to the project's environment variables on Vercel."
     )
   }
 

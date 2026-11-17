@@ -4,6 +4,7 @@ import express from "express"
 import mongoose from "mongoose"
 
 import { config } from "./config.js"
+import { connectToDatabase } from "./db.js"
 import { errorHandler } from "./lib/http.js"
 import authRoutes from "./routes/auth.js"
 import dashboardRoutes from "./routes/dashboard.js"
@@ -14,7 +15,7 @@ import patientRoutes from "./routes/patients.js"
 export function createApp() {
   const app = express()
 
-  // Heroku and other reverse proxies terminate TLS before the request reaches us.
+  // Vercel and other reverse proxies terminate TLS before the request reaches us.
   if (config.trustProxy) {
     app.set("trust proxy", 1)
   }
@@ -39,6 +40,23 @@ export function createApp() {
   app.use(express.json({ limit: "100kb" }))
   app.use(cookieParser())
 
+  /**
+   * Serverless platforms do not have a startup phase, so the first request of a
+   * cold instance opens the database connection. When it is already open this
+   * is only a `readyState` check.
+   */
+  app.use(async (_request, _response, next) => {
+    try {
+      await connectToDatabase()
+    } catch (error) {
+      // The data routes retry the connection and report a JSON 500 instead of
+      // letting the whole function crash with an HTML error page.
+      console.error("[api] database connection failed", error)
+    }
+
+    next()
+  })
+
   app.get("/api/health", (_request, response) => {
     response.json({
       status: "ok",
@@ -60,3 +78,12 @@ export function createApp() {
 
   return app
 }
+
+/**
+ * Vercel's zero-configuration Express support looks for a default export (or an
+ * `app.listen` call) in `app`, `index` or `server` at the project root or under
+ * `src/`. This default export is what the platform deploys as a single Function.
+ */
+const app = createApp()
+
+export default app

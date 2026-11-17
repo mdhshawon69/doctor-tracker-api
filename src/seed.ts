@@ -1,9 +1,6 @@
-import { hash } from "bcryptjs"
-
 import { connectToDatabase, disconnectFromDatabase } from "./db.js"
 import { Doctor } from "./models/doctor.js"
 import { Patient } from "./models/patient.js"
-import { User } from "./models/user.js"
 
 const DAY = 24 * 60 * 60 * 1000
 
@@ -123,26 +120,7 @@ const conditions = [
 async function seed() {
   await connectToDatabase()
 
-  const adminEmail = (process.env.ADMIN_EMAIL ?? "admin@careguide.app").toLowerCase()
-  const adminPassword = process.env.ADMIN_PASSWORD ?? "Admin@12345"
-  const adminName = process.env.ADMIN_NAME ?? "Dara Whitfield"
-
-  await Promise.all([
-    Doctor.syncIndexes(),
-    Patient.syncIndexes(),
-    User.syncIndexes(),
-  ])
-
-  await User.findOneAndUpdate(
-    { email: adminEmail },
-    {
-      name: adminName,
-      email: adminEmail,
-      passwordHash: await hash(adminPassword, 10),
-      role: "admin",
-    },
-    { upsert: true, returnDocument: "after", setDefaultsOnInsert: true }
-  )
+  await Promise.all([Doctor.syncIndexes(), Patient.syncIndexes()])
 
   await Promise.all([Doctor.deleteMany({}), Patient.deleteMany({})])
 
@@ -186,8 +164,7 @@ async function seed() {
   console.log("Seed complete.")
   console.log(`  Doctors:  ${doctorDocs.length}`)
   console.log(`  Patients: ${patients.length}`)
-  console.log(`  Admin:    ${adminEmail}`)
-  console.log(`  Password: ${adminPassword}`)
+  console.log("  Accounts: unchanged (create the first one from the app or POST /api/auth/register)")
 
   await disconnectFromDatabase()
   process.exit(0)

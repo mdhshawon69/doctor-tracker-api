@@ -5,6 +5,14 @@ export type SessionUser = {
   role: "admin"
 }
 
+export type UserSummary = {
+  id: string
+  name: string
+  email: string
+  role: "admin"
+  createdAt: string
+}
+
 export type DoctorSummary = {
   id: string
   name: string
